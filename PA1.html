@@ -103,6 +103,9 @@ ggplot(avg_steps_per_interval, aes(interval, steps)) + geom_line()</code></pre>
 </div>
 <div id="imputing-missing-values" class="section level2">
 <h2>Imputing missing values</h2>
+<pre class="r"><code>rows_with_nas &lt;- sum(!complete.cases(raw))
+missing_steps &lt;- sum(is.na(raw$steps))</code></pre>
+<p>There are 2304 NAs in the data and 2304 of them occur in the steps column. My strategy to replace missing values is to write a zero in for every missing value.</p>
 </div>
 <div id="are-there-differences-in-activity-patterns-between-weekdays-and-weekends" class="section level2">
 <h2>Are there differences in activity patterns between weekdays and weekends?</h2>

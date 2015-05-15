@@ -58,6 +58,12 @@ The interval containing the maximum, on average, activity is 835, which has a va
 
 ## Imputing missing values
 
+```r
+rows_with_nas <- sum(!complete.cases(raw))
+missing_steps <- sum(is.na(raw$steps))
+```
+There are 2304 NAs in the data and 2304 of them occur in the steps column.   My strategy to replace missing values is to write a zero in for every missing value.
+
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
