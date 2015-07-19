@@ -13,9 +13,9 @@ library(dplyr)
 ## 
 ## Attaching package: 'dplyr'
 ## 
-## The following object is masked from 'package:stats':
+## The following objects are masked from 'package:stats':
 ## 
-##     filter
+##     filter, lag
 ## 
 ## The following objects are masked from 'package:base':
 ## 
@@ -98,37 +98,67 @@ missing_steps
 ```
 ## [1] 2304
 ```
-There are 2304 NAs in the data and 100% of them occur in the steps column.   My strategy to replace missing values is to write a zero in for every missing value.
+There are 2304 NAs in the data and 100% of them occur in the steps column.   In order to achieve the best imputation, I will trial three different approaches.   The first approach will impute 0s for all NAs.   The second approach will impute the interval mean.   The third approach will impute the interval median.   I will compare results from the three approaches to see which is best.
 
 
 ```r
+#first approach - just write a 0
 noNAs <- raw
 missing_cases <- which(is.na(noNAs$steps))
 noNAs[missing_cases,"steps"] <- 0
-nby_date <- group_by(noNAs,date)
+noNAs_0 <- noNAs
+noNAs_0$method <- 1
+
+#second approach - use the mean for that interval
+noNAs <- raw
+missing_cases <- which(is.na(noNAs$steps))
+x <- NULL
+for (i in 1:length(missing_cases)){y <- mean(raw[raw$interval == raw[missing_cases[i],"interval"], "steps"], na.rm = TRUE); x <- c(x,y)}
+missing_cases <- data.frame(cbind(missing_cases,x))
+names(missing_cases) <- c("row","steps")
+noNAs[missing_cases$row,"steps"] <- missing_cases$steps
+noNAs_mean <- noNAs
+noNAs_mean$method <- 2
+
+#third approach - use the median for that interval
+noNAs <- raw
+missing_cases <- which(is.na(noNAs$steps))
+x <- NULL
+for (i in 1:length(missing_cases)){y <- median(raw[raw$interval == raw[missing_cases[i],"interval"], "steps"], na.rm = TRUE); x <- c(x,y)}
+missing_cases <- data.frame(cbind(missing_cases,x))
+names(missing_cases) <- c("row","steps")
+noNAs[missing_cases$row,"steps"] <- missing_cases$steps
+noNAs_median <- noNAs
+noNAs_median$method <- 3
+
+noNAs <-rbind(noNAs_0, noNAs_mean, noNAs_median)
+noNAs$method <- as.factor(noNAs$method)
+levels(noNAs$method) <- c("0", "mean", "median")
+
+nby_date <- group_by(noNAs,date, method)
 nsteps_by_day <- summarize(nby_date,total_steps = sum(steps))
-ggplot(nsteps_by_day, aes(total_steps)) + geom_histogram()
+ggplot(nsteps_by_day, aes(total_steps)) + geom_histogram() + ylim(0,15) + facet_grid(method~.)
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-6-1.png) 
 
 ```r
-mean(nsteps_by_day$total_steps)
+m1 <- mean(nsteps_by_day[nsteps_by_day$method == "0",]$total_steps)
+m2 <- mean(nsteps_by_day[nsteps_by_day$method == "mean",]$total_steps)
+m3 <- mean(nsteps_by_day[nsteps_by_day$method == "median",]$total_steps)
+n1 <- median(nsteps_by_day[nsteps_by_day$method == "0",]$total_steps)
+n2 <- median(nsteps_by_day[nsteps_by_day$method == "mean",]$total_steps)
+n3 <- median(nsteps_by_day[nsteps_by_day$method == "median",]$total_steps)
+data.frame(zero = c(m1, n1), mean = c(m2, n2), median = c(m3, n3), row.names = c("mean", "median"))
 ```
 
 ```
-## [1] 9354.23
+##            zero     mean    median
+## mean    9354.23 10766.19  9503.869
+## median 10395.00 10766.19 10395.000
 ```
 
-```r
-median(nsteps_by_day$total_steps)
-```
-
-```
-## [1] 10395
-```
-
-The impact of imputing zeros into the data set cause both the mean and the median to decline in value.   Also, the mean became lower than the median, indicating the the data is left skewed.
+The effect of using the three different approaches is to cause the NAs to have different imputed values.   The approach using zero gives the lowest steps per day, then approach using median gives the second lowest steps per day and the approach using mean gives the highest steps per day.   Based on this, I suspect that using the median to impute values may yield the best results.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
